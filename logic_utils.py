@@ -1,5 +1,5 @@
 def get_range_for_difficulty(difficulty: str):
-    """
+    """                                         
     Retrieve the valid number range for a specified difficulty level.
 
     Maps difficulty levels to their corresponding numeric ranges that constrain

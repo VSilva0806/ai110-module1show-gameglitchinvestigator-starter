@@ -31,11 +31,15 @@ It wrote the code, ran away, and now the game is unplayable.
 
 ## 📸 Demo
 
-- ![alt text](<Screenshot 2026-03-15 at 10.16.24 PM.jpg>)
+- Test run of the game:
 - ![alt text](<Screenshot 2026-03-15 at 10.02.03 PM.jpg>)
+
+Some edge case tests:
+- ![alt text](<Screenshot 2026-03-15 at 10.16.24 PM.jpg>)
 
 ## 🚀 Stretch Features
 
+Upgraded User Interface:
 - ![alt text](<Screenshot 2026-03-15 at 10.24.06 PM.jpg>)
 
 The agent implemented a guess history that showed the player's previous guesses in each game to let the player visualize how close their score was to the target. The agent also added a hot/cold meter to give make the UI more lively and engaging.

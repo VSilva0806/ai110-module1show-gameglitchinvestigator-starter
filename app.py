@@ -163,7 +163,7 @@ if submit:
         st.session_state.history.append(guess_int)
 
         outcome, message = check_guess(guess_int, st.session_state.secret)
-        # Removed dangerous comparison logic that converted secret to
+        # FIX: Removed dangerous comparison logic that converted secret to
         # string, causing wrong hints
 
         closeness = calculate_closeness(guess_int, st.session_state.secret)

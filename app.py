@@ -1,68 +1,13 @@
 import random
 import streamlit as st
-
-def get_range_for_difficulty(difficulty: str):
-    if difficulty == "Easy":
-        return 1, 20
-    if difficulty == "Normal":
-        return 1, 100
-    if difficulty == "Hard":
-        return 1, 50
-    return 1, 100
-
-
-def parse_guess(raw: str):
-    if raw is None:
-        return False, None, "Enter a guess."
-
-    if raw == "":
-        return False, None, "Enter a guess."
-
-    try:
-        if "." in raw:
-            value = int(float(raw))
-        else:
-            value = int(raw)
-    except Exception:
-        return False, None, "That is not a number."
-
-    return True, value, None
-
-
-def check_guess(guess, secret):
-    if guess == secret:
-        return "Win", "🎉 Correct!"
-
-    try:
-        if guess > secret:
-            return "Too High", "📈 Go HIGHER!"
-        else:
-            return "Too Low", "📉 Go LOWER!"
-    except TypeError:
-        g = str(guess)
-        if g == secret:
-            return "Win", "🎉 Correct!"
-        if g > secret:
-            return "Too High", "📈 Go HIGHER!"
-        return "Too Low", "📉 Go LOWER!"
-
-
-def update_score(current_score: int, outcome: str, attempt_number: int):
-    if outcome == "Win":
-        points = 100 - 10 * (attempt_number + 1)
-        if points < 10:
-            points = 10
-        return current_score + points
-
-    if outcome == "Too High":
-        if attempt_number % 2 == 0:
-            return current_score + 5
-        return current_score - 5
-
-    if outcome == "Too Low":
-        return current_score - 5
-
-    return current_score
+from logic_utils import (
+    calculate_closeness,
+    check_guess,
+    get_range_for_difficulty,
+    parse_guess,
+    update_score,
+    get_hot_cold_hint
+)
 
 st.set_page_config(page_title="Glitchy Guesser", page_icon="🎮")
 
@@ -85,6 +30,19 @@ attempt_limit_map = {
 attempt_limit = attempt_limit_map[difficulty]
 
 low, high = get_range_for_difficulty(difficulty)
+if "difficulty" not in st.session_state:
+    st.session_state.difficulty = difficulty
+
+if st.session_state.difficulty != difficulty:
+    # FIX: Reset game when difficulty changes
+    st.session_state.difficulty = difficulty
+    st.session_state.secret = random.randint(low, high)
+    st.session_state.attempts = 0  # FIX: Reset on difficulty change
+    st.session_state.score = 0
+    st.session_state.status = "playing"
+    st.session_state.history = []
+    st.session_state.guess_details = []
+    st.session_state.best_guess = None
 
 st.sidebar.caption(f"Range: {low} to {high}")
 st.sidebar.caption(f"Attempts allowed: {attempt_limit}")
@@ -93,7 +51,7 @@ if "secret" not in st.session_state:
     st.session_state.secret = random.randint(low, high)
 
 if "attempts" not in st.session_state:
-    st.session_state.attempts = 1
+    st.session_state.attempts = 0
 
 if "score" not in st.session_state:
     st.session_state.score = 0
@@ -104,10 +62,56 @@ if "status" not in st.session_state:
 if "history" not in st.session_state:
     st.session_state.history = []
 
+if "guess_details" not in st.session_state:
+    st.session_state.guess_details = []
+
+if "best_guess" not in st.session_state:
+    st.session_state.best_guess = None
+
+if "high_scores" not in st.session_state:
+    st.session_state.high_scores = {"Easy": None, "Normal": None, "Hard": None}
+
+if "game_history" not in st.session_state:
+    st.session_state.game_history = []
+
+st.sidebar.divider()
+st.sidebar.subheader("🏆 Guess History")
+
+best_guess_won = (
+    st.session_state.best_guess
+    and st.session_state.best_guess["outcome"] == "Win"
+)
+if best_guess_won:
+    st.sidebar.success(
+        f"✨ **WINNER!** Secret: {st.session_state.secret}\n\n"
+        f"Best Guess: {st.session_state.best_guess['guess']}\n"
+        f"Off by: {st.session_state.best_guess['closeness']}"
+    )
+elif st.session_state.best_guess:
+    st.sidebar.info(
+        f"🎯 **Best Guess:** {st.session_state.best_guess['guess']}\n\n"
+        f"Off by: {st.session_state.best_guess['closeness']} units"
+    )
+
+if st.session_state.guess_details:
+    st.sidebar.write("**All Guesses:**")
+    for record in st.session_state.guess_details:
+        closeness = record["closeness"]
+        if closeness <= 5:
+            distance_emoji = "🔥"
+        elif closeness <= 15:
+            distance_emoji = "🌡️"
+        else:
+            distance_emoji = "❄️"
+        st.sidebar.caption(
+            f"{distance_emoji} #{record['attempt']}: {record['guess']} "
+            f"(off by {record['closeness']}) - {record['outcome']}"
+        )
+
 st.subheader("Make a guess")
 
 st.info(
-    f"Guess a number between 1 and 100. "
+    f"Guess a number between {low} and {high}. "
     f"Attempts left: {attempt_limit - st.session_state.attempts}"
 )
 
@@ -133,7 +137,10 @@ with col3:
 
 if new_game:
     st.session_state.attempts = 0
-    st.session_state.secret = random.randint(1, 100)
+    st.session_state.secret = random.randint(low, high)
+    st.session_state.status = "playing"
+    st.session_state.guess_details = []
+    st.session_state.best_guess = None
     st.success("New game started.")
     st.rerun()
 
@@ -155,15 +162,32 @@ if submit:
     else:
         st.session_state.history.append(guess_int)
 
-        if st.session_state.attempts % 2 == 0:
-            secret = str(st.session_state.secret)
-        else:
-            secret = st.session_state.secret
+        outcome, message = check_guess(guess_int, st.session_state.secret)
+        # Removed dangerous comparison logic that converted secret to
+        # string, causing wrong hints
 
-        outcome, message = check_guess(guess_int, secret)
+        closeness = calculate_closeness(guess_int, st.session_state.secret)
+        guess_record = {
+            "guess": guess_int,
+            "closeness": closeness,
+            "outcome": outcome,
+            "attempt": st.session_state.attempts
+        }
+        st.session_state.guess_details.append(guess_record)
+
+        is_better_guess = (
+            st.session_state.best_guess is None
+            or closeness < st.session_state.best_guess["closeness"]
+        )
+        if is_better_guess:
+            st.session_state.best_guess = guess_record
 
         if show_hint:
             st.warning(message)
+
+            # Display Hot/Cold emoji hint
+            hot_cold_hint = get_hot_cold_hint(closeness)
+            st.info(f"**Temperature:** {hot_cold_hint} (Off by {closeness} units)")
 
         st.session_state.score = update_score(
             current_score=st.session_state.score,

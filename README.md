@@ -25,14 +25,17 @@ It wrote the code, ran away, and now the game is unplayable.
 
 ## 📝 Document Your Experience
 
-- [ ] Describe the game's purpose.
-- [ ] Detail which bugs you found.
-- [ ] Explain what fixes you applied.
+- The purpose in this game is to guess a number within a certain range.
+- Several bugs I found included: misleading hints, unstable secret number, innacurate attempt count, improper boundaries.
+- I used Claude AI to help me fix the boundaries based on difficulty and asked it to assist me in outputting accurate hints. I also was able to stabilize the secret number so it holds for the duration of a game.
 
 ## 📸 Demo
 
-- [ ] [Insert a screenshot of your fixed, winning game here]
+- ![alt text](<Screenshot 2026-03-15 at 10.02.03 PM-1.jpg>)
+![alt text](<Screenshot 2026-03-15 at 10.16.24 PM-1.jpg>)
 
 ## 🚀 Stretch Features
 
-- [ ] [If you choose to complete Challenge 4, insert a screenshot of your Enhanced Game UI here]
+- ![alt text](<Screenshot 2026-03-15 at 10.24.06 PM.jpg>)
+
+The agent implemented a guess history that showed the player's previous guesses in each game to let the player visualize how close their score was to the target. The agent also added a hot/cold meter to give make the UI more lively and engaging.
